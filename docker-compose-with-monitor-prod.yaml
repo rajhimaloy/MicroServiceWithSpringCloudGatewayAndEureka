@@ -1,0 +1,167 @@
+version: '3.5'
+
+networks:
+   web-app-net:
+       name: my-web-app-net
+       driver: overlay
+       #driver: bridge
+
+services:
+   first-webapp:
+      image: first-web-service:1.0
+      environment:
+         management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+         app.home.logs: /home/logs
+      ports:
+         - 8081
+      deploy:
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 5s
+        restart_policy:
+          condition: on-failure
+        placement:
+          constraints:
+            - node.role == worker
+            - node.labels.worker-node-01 == yes
+      networks:
+         - web-app-net
+
+   second-webapp:
+      image: second-web-service:1.0
+      environment:
+         management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+      ports:
+        - 8082
+      deploy:
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 5s
+        restart_policy:
+          condition: on-failure
+        placement:
+          constraints:
+            - node.role == worker
+            - node.labels.worker-node-01 == yes
+      networks:
+        - web-app-net
+
+   auth-webapp:
+      image: auth-web-service:1.0
+      environment:
+        management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+      ports:
+        - 8083
+      deploy:
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 5s
+        restart_policy:
+          condition: on-failure
+        placement:
+          constraints:
+            - node.role == worker
+            - node.labels.worker-node-01 == yes
+      networks:
+        - web-app-net
+
+   api-gateway:
+      image: api-gateway:1.0
+      environment:
+        management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus,gateway
+        app.first.host: first-webapp
+        app.first.port: 8081
+        app.second.host: second-webapp
+        app.second.port: 8082
+        app.auth.host: auth-webapp
+        app.auth.port: 8083
+        redis.host: redis
+        redis.port: 6379
+      ports:
+        - 80:80
+      depends_on:
+        - auth-webapp
+        - second-webapp
+        - first-webapp
+      deploy:
+        replicas: 1
+        update_config:
+          parallelism: 1
+          delay: 5s
+        restart_policy:
+          condition: on-failure
+        placement:
+          constraints:
+            - node.role == manager
+            - node.labels.manager-node-01 == yes
+      networks:
+        - web-app-net
+
+   exporter:
+     image: prom/node-exporter:latest
+     ports:
+       - 9100
+     deploy:
+       replicas: 1
+       update_config:
+         parallelism: 1
+         delay: 5s
+       restart_policy:
+         condition: on-failure
+       placement:
+         constraints:
+           - node.role == worker
+           - node.labels.monitor-node-01 == yes
+     networks:
+       - web-app-net
+
+   prom:
+     image: prometheus-db:1.0
+     command:
+       - '--config.file=/etc/prometheus/prometheus.yaml'
+       - '--storage.tsdb.path=/prometheus'
+     build:
+       context: .
+       dockerfile: ./monitoring/Dockerfile-embedded
+     ports:
+       - 9090:9090
+     depends_on:
+       - exporter
+     deploy:
+       replicas: 1
+       update_config:
+         parallelism: 1
+         delay: 5s
+       restart_policy:
+         condition: on-failure
+       placement:
+         constraints:
+           - node.role == worker
+           - node.labels.monitor-node-01 == yes
+     networks:
+       - web-app-net
+
+#   grafana:
+#     image: grafana/grafana
+#     ports:
+#       - 3000:3000
+#     depends_on:
+#       - prom
+#     deploy:
+#       replicas: 1
+#       update_config:
+#         parallelism: 1
+#         delay: 5s
+#       restart_policy:
+#         condition: on-failure
+#       placement:
+#         constraints:
+#           - node.role == worker
+#           - node.labels.monitor-node-01 == yes
+#     networks:
+#       - web-app-net
+
+##End of Scripts

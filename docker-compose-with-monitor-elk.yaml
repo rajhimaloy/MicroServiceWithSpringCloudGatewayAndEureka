@@ -1,0 +1,154 @@
+version: '3.5'
+
+networks:
+   web-app-net:
+       name: my-web-app-net
+       #driver: overlay
+       driver: bridge
+
+services:
+   first-webapp:
+      image: first-web-service:1.0
+      build:
+         context: .
+         dockerfile: ./first-service/Dockerfile
+      environment:
+         management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+         app.home.logs: /home/logs
+      ports:
+         - 8081
+      labels:
+        collect_logs_with_filebeat: "true"
+        decode_log_event_to_json_object: "true"
+      networks:
+         - web-app-net
+
+   second-webapp:
+      image: second-web-service:1.0
+      build:
+         context: .
+         dockerfile: ./second-service/Dockerfile
+      environment:
+         management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+      ports:
+        - 8082
+      networks:
+        - web-app-net
+
+   auth-webapp:
+      image: auth-web-service:1.0
+      build:
+        context: .
+        dockerfile: ./auth-service/Dockerfile
+      environment:
+        management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+      ports:
+        - 8083
+      networks:
+        - web-app-net
+
+   api-gateway:
+      image: api-gateway:1.0
+      build:
+        context: .
+        dockerfile: ./gateway-service-config/Dockerfile
+      environment:
+        management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus,gateway
+        app.first.host: first-webapp
+        app.first.port: 8081
+        app.second.host: second-webapp
+        app.second.port: 8082
+        app.auth.host: auth-webapp
+        app.auth.port: 8083
+        redis.host: redis
+        redis.port: 6379
+      ports:
+        - 80:80
+      depends_on:
+        - auth-webapp
+        - second-webapp
+        - first-webapp
+      networks:
+        - web-app-net
+
+   exporter:
+     image: prom/node-exporter:latest
+     ports:
+       - 9100
+     networks:
+       - web-app-net
+
+   prom:
+     image: prometheus-db:1.0
+     command:
+       - '--config.file=/etc/prometheus/prometheus.yaml'
+       - '--storage.tsdb.path=/prometheus'
+     build:
+       context: .
+       dockerfile: ./monitoring/Dockerfile-embedded
+     ports:
+       - 9090:9090
+     depends_on:
+       - exporter
+     networks:
+       - web-app-net
+
+#   grafana:
+#     image: grafana/grafana
+#     ports:
+#       - 3000:3000
+#     depends_on:
+#       - prom
+#     networks:
+#       - web-app-net
+
+   elasticsearch:
+     image: docker.elastic.co/elasticsearch/elasticsearch:7.2.0
+     ports:
+       - 9200:9200
+     environment:
+       - "discovery.type=single-node"
+     volumes:
+       - ./elkstack/elasticsearch/data:/usr/share/elasticsearch/data:rw              # Persistence data
+     networks:
+       - web-app-net
+
+   logstash:
+     image: docker.elastic.co/logstash/logstash:7.2.0
+     ports:
+       - 25826:25826
+       - 5044:5044
+     volumes:
+       - ./elkstack/logstash/pipeline:/usr/share/logstash/pipeline:ro                # Pipeline configuration
+     restart: on-failure
+     depends_on:
+       - elasticsearch
+     networks:
+       - web-app-net
+
+   kibana:
+     image: docker.elastic.co/kibana/kibana:7.2.0
+     ports:
+       - 5601:5601
+     restart: on-failure
+     depends_on:
+       - elasticsearch
+     networks:
+       - web-app-net
+
+   filebeat:
+     image: docker.elastic.co/beats/filebeat:7.2.0
+     command: filebeat -e -strict.perms=false
+     volumes:
+       - ./elkstack/filebeat/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro # Configuration file, e.g. commend was introduced for passing the file permission.
+       - /var/lib/docker/containers:/var/lib/docker/containers:ro                    # Docker logs
+       - /var/run/docker.sock:/var/run/docker.sock:ro                                # Additional information about containers
+       - ./elkstack/filebeat/data:/usr/share/filebeat/data:rw                        # Persistence data
+     user: root                                                                      # Allow access to log files and docker.sock
+     restart: on-failure
+     depends_on:
+       - logstash
+     networks:
+       - web-app-net
+
+##End of Scripts

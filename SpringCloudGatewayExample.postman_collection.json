@@ -1,0 +1,115 @@
+{
+	"info": {
+		"_postman_id": "6063e287-1518-4760-9f37-0bcfc21d7069",
+		"name": "SpringCloudGatewayExample",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "http://localhost/api/consumer/v1/message",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost/api/consumer/v1/message",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"api",
+						"consumer",
+						"v1",
+						"message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost/api/employee/v1/message",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "ssss",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost/api/employee/v1/message",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"api",
+						"employee",
+						"v1",
+						"message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost/api/employee/v1/delayed/message",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "ssss",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost/api/employee/v1/delayed/message",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"api",
+						"employee",
+						"v1",
+						"delayed",
+						"message"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost/api/employee/v1/rateLimit/message",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost/api/employee/v1/rateLimit/message",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"api",
+						"employee",
+						"v1",
+						"rateLimit",
+						"message"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: auth-service
+server:
+  port: 8083
+  servlet:
+    context-path: /api/auth
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,httptrace,prometheus
+#Eureka-Config:
+app.eureka.service.host: localhost
+app.eureka.service.port: 801
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://${app.eureka.service.host}:${app.eureka.service.port}/eureka
+

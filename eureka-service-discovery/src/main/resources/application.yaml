@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: discovery-service
+server:
+  port: 801
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,httptrace,prometheus
+#Eureka-Config:
+eureka:
+  client:
+    registerWithEureka: false
+    fetchRegistry: false
+    service-url:
+      defaultZone: http://localhost:801/eureka

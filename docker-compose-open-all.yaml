@@ -1,0 +1,97 @@
+version: '3.5'
+
+networks:
+   web-app-net:
+       name: my-web-app-net
+       #driver: overlay
+       driver: bridge
+
+services:
+   first-webapp:
+      image: first-web-service:1.0
+      build:
+         context: .
+         dockerfile: ./first-service/Dockerfile
+      environment:
+         management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+         app.home.logs: /home/logs
+         app.eureka.service.host: discovery-service
+         app.eureka.service.port: 801
+      ports:
+         - 8081:8081
+      depends_on:
+        - discovery-service
+      restart: on-failure
+      networks:
+         - web-app-net
+
+   second-webapp:
+      image: second-web-service:1.0
+      build:
+         context: .
+         dockerfile: ./second-service/Dockerfile
+      environment:
+         management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+         app.eureka.service.host: discovery-service
+         app.eureka.service.port: 801
+      ports:
+        - 8082:8082
+      depends_on:
+        - discovery-service
+      restart: on-failure
+      networks:
+        - web-app-net
+
+   auth-webapp:
+      image: auth-web-service:1.0
+      build:
+        context: .
+        dockerfile: ./auth-service/Dockerfile
+      environment:
+        management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+        app.eureka.service.host: discovery-service
+        app.eureka.service.port: 801
+      ports:
+        - 8083:8083
+      depends_on:
+        - discovery-service
+      restart: on-failure
+      networks:
+        - web-app-net
+
+   api-gateway:
+      image: api-gateway:1.0
+      build:
+        context: .
+        dockerfile: ./gateway-service-config/Dockerfile
+      environment:
+        management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus,gateway
+        app.eureka.service.host: discovery-service
+        app.eureka.service.port: 801
+        redis.host: redis
+        redis.port: 6379
+      ports:
+        - 80:80
+      depends_on:
+        - auth-webapp
+        - second-webapp
+        - first-webapp
+        - discovery-service
+      restart: on-failure
+      networks:
+        - web-app-net
+
+   discovery-service:
+     image: discovery-service:1.0
+     build:
+       context: .
+       dockerfile: ./eureka-service-discovery/Dockerfile
+     environment:
+       management.endpoints.web.exposure.include: health,metrics,httptrace,prometheus
+     ports:
+       - 801:801
+     restart: on-failure
+     networks:
+       - web-app-net
+
+##End of Scripts

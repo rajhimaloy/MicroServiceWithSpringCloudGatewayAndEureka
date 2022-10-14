@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: second-service
+server:
+  port: 8082
+  servlet:
+    context-path: /api/consumer
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,httptrace,prometheus
+#Eureka-Config:
+app.eureka.service.host: localhost
+app.eureka.service.port: 801
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://${app.eureka.service.host}:${app.eureka.service.port}/eureka

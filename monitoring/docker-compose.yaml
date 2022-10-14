@@ -1,0 +1,66 @@
+version: '3.5'
+
+networks:
+  web-app-net:
+    name: my-web-app-net
+    #driver: overlay
+    driver: bridge
+
+services:
+  exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - 9100
+    networks:
+      - web-app-net
+#    deploy:
+#      replicas: 1
+#      update_config:
+#        parallelism: 1
+#        delay: 5s
+#      placement:
+#        constraints:
+#          - node.role == worker
+#          - node.labels.monitor-host == yes
+
+  prom:
+    image: prometheus-db:1.0
+    command: "--config.file=/etc/prometheus/prometheus.yaml --storage.tsdb.path=/prometheus"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 9090:9090
+    depends_on:
+      - exporter
+    networks:
+      - web-app-net
+#    deploy:
+#      replicas: 1
+#      update_config:
+#        parallelism: 1
+#        delay: 5s
+#      placement:
+#        constraints:
+#          - node.role == worker
+#          - node.labels.monitor-host == yes
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - prom
+    networks:
+      - web-app-net
+#    deploy:
+#      replicas: 1
+#      update_config:
+#        parallelism: 1
+#        delay: 5s
+#      placement:
+#        constraints:
+#          - node.role == worker
+#          - node.labels.monitor-host == yes
+
+#End Of Scripts
